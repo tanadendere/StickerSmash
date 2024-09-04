@@ -11,7 +11,7 @@ import FontAwesome from "@expo/vector-icons/FontAwesome";
  * to advanced events such as a long press.
  */
 
-export default function Button({ label, theme }) {
+export default function Button({ label, theme, onPress }) {
   // You can enhance a reusable component to have different styling for different use cases of the same component.
 
   if (theme === "primary") {
@@ -31,7 +31,7 @@ export default function Button({ label, theme }) {
       >
         <Pressable
           style={[styles.button, { backgroundColor: "#fff" }]}
-          onPress={() => alert("You pressed a button.")}
+          onPress={onPress}
         >
           <FontAwesome
             name="picture-o"

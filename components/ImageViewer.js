@@ -1,12 +1,17 @@
 import { StyleSheet, Image } from "react-native";
 
-export default function ImageViewer({ placeholderImageSource }) {
+export default function ImageViewer({ placeholderImageSource, selectedImage }) {
   /**
    * The PlaceholderImage variable references
    * the ./assets/images/background-image.png and
    * is used as the source prop on the <Image> component.
    */
-  return <Image source={placeholderImageSource} style={styles.image} />;
+  const imageSource = selectedImage
+    ? { uri: selectedImage }
+    : placeholderImageSource;
+
+  // the image picked from the image picker is a uri string, not a local asset like the placeholder image.
+  return <Image source={imageSource} style={styles.image} />;
 }
 
 const styles = StyleSheet.create({

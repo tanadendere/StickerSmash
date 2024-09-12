@@ -1,7 +1,7 @@
 import { StatusBar } from "expo-status-bar";
-import { StyleSheet, Text, View, Image } from "react-native";
+import { StyleSheet, Text, View, Image, Platform } from "react-native";
 import * as ImagePicker from "expo-image-picker";
-import { useState } from "react";
+import { Alert, useState, useRef } from "react";
 import ImageViewer from "./components/ImageViewer";
 import Button from "./components/Button";
 import IconButton from "./components/IconButton";
@@ -10,11 +10,31 @@ import EmojiPicker from "./components/EmojiPicker";
 import EmojiList from "./components/EmojiList";
 import EmojiSticker from "./components/EmojiSticker";
 
+import { GestureHandlerRootView } from "react-native-gesture-handler";
+// The React Native Gesture Handler library provides a way to interact with the native platform's gesture response system.
+// React Native Gesture Handler allows us to add behaviour when it detects touch input.
+
+import * as MediaLibrary from "expo-media-library";
+import { captureRef } from "react-native-view-shot"; // for android and iOS
+import domtoimage from "dom-to-image"; // for web
+
+// The react-native-view-shot library provides a method called captureRef() that captures a screenshot of a <View> in the app and returns the URI of the screenshot image file.
+
 // React Native's Image component requires a source (a static asset/ or a URL)
 // Here the source is required from the app's ./assets/images directory or it can come from the Network in the form of a uri property
 const PlaceholderImage = require("./assets/images/background-image.png");
 
 export default function App() {
+  const imageRef = useRef();
+  // REMEMBER : useRef() - allows you to persist values between renders. It can be used to store a mutable value that does not cause a re-render when updated.
+
+  const [status, requestPermission] = MediaLibrary.usePermissions();
+
+  if (status === null) {
+    requestPermission();
+  }
+  // Once permission is given, the value of the status changes to granted.
+
   const [isModalVisible, setIsModalVisible] = useState(false);
   const [pickedEmoji, setPickedEmoji] = useState(null);
 
@@ -62,7 +82,36 @@ export default function App() {
   };
 
   const onSaveImageAsync = async () => {
-    // we will implement this later
+    if (Platform.OS !== "web") {
+      try {
+        const localUri = await captureRef(imageRef, {
+          height: 440,
+          quality: 1,
+        });
+
+        await MediaLibrary.saveToLibraryAsync(localUri);
+        if (localUri) {
+          alert("Saved!");
+        }
+      } catch (e) {
+        console.log(e);
+      }
+    } else {
+      try {
+        const dataUrl = await domtoimage.toJpeg(imageRef.current, {
+          quality: 0.95,
+          width: 320,
+          height: 440,
+        });
+
+        let link = document.createElement("a");
+        link.download = "sticker-smash.jpeg";
+        link.href = dataUrl;
+        link.click();
+      } catch (e) {
+        console.log(e);
+      }
+    }
   };
 
   const onModalClose = () => {
@@ -70,16 +119,21 @@ export default function App() {
   };
 
   return (
-    <View style={styles.container}>
+    // to get gesture interactions to work in the app, we'll render
+    // <GestureHandlerRootView> from react-native-gesture-handler
+    // to wrap the top-level component of our app (also known as the "root component").
+    <GestureHandlerRootView style={styles.container}>
       <View style={styles.imageContainer}>
         {/* custom component from ImageViewer.js */}
-        <ImageViewer
-          placeholderImageSource={PlaceholderImage}
-          selectedImage={selectedImage}
-        />
-        {pickedEmoji && (
-          <EmojiSticker imageSize={40} stickerSource={pickedEmoji} />
-        )}
+        <View ref={imageRef} collapsable={false}>
+          <ImageViewer
+            placeholderImageSource={PlaceholderImage}
+            selectedImage={selectedImage}
+          />
+          {pickedEmoji && (
+            <EmojiSticker imageSize={40} stickerSource={pickedEmoji} />
+          )}
+        </View>
       </View>
 
       {showAppOptions ? (
@@ -112,9 +166,9 @@ export default function App() {
         and the onCloseModal prop closes the modal after emoji is selected. */}
         <EmojiList onSelect={setPickedEmoji} onCloseModal={onModalClose} />
       </EmojiPicker>
-      <StatusBar style="auto" />
+      <StatusBar style="light" />
       {/* The status bar is the zone typically at the top of the screen, that displays the current time, WiFi etc... the style changes colour, visibility etc */}
-    </View>
+    </GestureHandlerRootView>
   );
 }
 // also use braces to break out into code
